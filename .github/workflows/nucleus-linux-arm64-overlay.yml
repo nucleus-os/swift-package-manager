@@ -147,7 +147,9 @@ jobs:
             --numeric-owner \
             --create --gzip --file "$output" \
             --directory "$root" .
-          sha256sum "$output" > "$output.sha256"
+          archive_digest=$(sha256sum "$output" | cut -d ' ' -f1)
+          printf '%s  %s\n' "$archive_digest" "$(basename "$output")" \
+            > "$output.sha256"
           LD_LIBRARY_PATH="$RUNNER_TEMP/swift/usr/lib/swift/linux" \
             "$root/usr/bin/swift-build" --version
 
