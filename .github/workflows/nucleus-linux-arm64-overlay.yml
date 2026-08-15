@@ -19,7 +19,7 @@ jobs:
     env:
       SWIFT_ARCHIVE_URL: https://download.swift.org/swift-6.4.x-branch/ubuntu2404-aarch64/swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-01-a/swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-01-a-ubuntu24.04-aarch64.tar.gz
       SWIFT_ARCHIVE_SHA256: d0d2aa2a243bf33d038da02611055bf13e48fe0e20a41a8443faa731884a03de
-      SWIFT_BUILD_REVISION: db32f92a5020d4a9c301117eda59893c8003f9be
+      SWIFT_BUILD_REVISION: 640278282f18a9d652a8369b9a009c1d4a77ff20
       OVERLAY_NAME: nucleus-swiftpm-overlay-linux-arm64
 
     steps:
