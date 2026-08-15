@@ -1,5 +1,5 @@
 {
-  "originHash" : "7317b55048047d4a8c51bc7c366b44094f8a4454f8241b5e4aa9bc6582cc11d0",
+  "originHash" : "47b4251243f70f658c79ecb95c359ea70a37feff9f49f564ad1109d7baf7c918",
   "pins" : [
     {
       "identity" : "swift-argument-parser",
@@ -24,7 +24,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/nucleus-os/swift-build.git",
       "state" : {
-        "revision" : "ab1492cad8de4d3f8d76f3e8f774c9c4247c4140"
+        "revision" : "db32f92a5020d4a9c301117eda59893c8003f9be"
       }
     },
     {
