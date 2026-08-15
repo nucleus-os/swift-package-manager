@@ -24,7 +24,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/nucleus-os/swift-build.git",
       "state" : {
-        "revision" : "10ba5dda19fb714fdf6cbf9e50502efe28014cdc"
+        "revision" : "8357381174aeff9c01a63d52a0d80f3a25988b4a"
       }
     },
     {
