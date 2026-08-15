@@ -1191,7 +1191,7 @@ if !shouldUseSwiftBuildFramework {
         package.dependencies += [
             .package(
                 url: "https://github.com/nucleus-os/swift-build.git",
-                revision: "0e4fa4b268f18f24f2dbfd4806dc7a79b56d1056"),
+                revision: "fda17c06401e1eedf2f040cbfff14aa992650dac"),
             .package(url: "https://github.com/swiftlang/swift-tools-protocols.git", branch: relatedDependenciesBranch),
         ]
     } else {
