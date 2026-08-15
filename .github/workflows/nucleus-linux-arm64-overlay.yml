@@ -74,6 +74,15 @@ jobs:
           path: ${{ runner.temp }}/swift-build-tests
           key: nucleus-swift-build-tests-${{ runner.os }}-${{ runner.arch }}-${{ env.SWIFT_BUILD_REVISION }}
 
+      - name: Restore the SwiftPM release workspace
+        id: swiftpm-release-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ runner.temp }}/swiftpm-build
+          key: nucleus-swiftpm-release-${{ runner.os }}-${{ runner.arch }}-${{ env.SWIFT_BUILD_REVISION }}-${{ github.sha }}
+          restore-keys: |
+            nucleus-swiftpm-release-${{ runner.os }}-${{ runner.arch }}-${{ env.SWIFT_BUILD_REVISION }}-
+
       - name: Build the pinned SwiftPM and SwiftBuild overlay
         run: |
           set -euo pipefail
@@ -96,6 +105,13 @@ jobs:
           test -x "$bin_path/swift-package-manager"
           printf '%s\n' "$bin_path" > "$RUNNER_TEMP/swiftpm-bin-path"
 
+      - name: Save the SwiftPM release workspace
+        if: always() && steps.swiftpm-release-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/swiftpm-build
+          key: nucleus-swiftpm-release-${{ runner.os }}-${{ runner.arch }}-${{ env.SWIFT_BUILD_REVISION }}-${{ github.sha }}
+
       - name: Assemble and validate the overlay archive
         run: |
           set -euo pipefail
@@ -109,9 +125,15 @@ jobs:
           find "$bin_path" -mindepth 1 -maxdepth 1 -type d \
             \( -name '*.bundle' -o -name '*.resources' \) \
             -exec cp -a {} "$root/usr/share/pm/" \;
-          test -f "$root/usr/share/pm/SwiftBuild_SWBUniversalPlatform.bundle/ProductTypes.xcspec"
+          universal_platform_resources=$(find "$root/usr/share/pm" \
+            -mindepth 1 -maxdepth 1 -type d \
+            \( -name 'SwiftBuild_SWBUniversalPlatform.bundle' \
+               -o -name 'SwiftBuild_SWBUniversalPlatform.resources' \) \
+            -print -quit)
+          test -n "$universal_platform_resources"
+          test -f "$universal_platform_resources/ProductTypes.xcspec"
           grep --fixed-strings 'SDKROOT = "$(HOST_PLATFORM)";' \
-            "$root/usr/share/pm/SwiftBuild_SWBUniversalPlatform.bundle/ProductTypes.xcspec"
+            "$universal_platform_resources/ProductTypes.xcspec"
           printf '%s\n' \
             "swift-package-manager=$GITHUB_SHA" \
             "swift-build=$SWIFT_BUILD_REVISION" \
