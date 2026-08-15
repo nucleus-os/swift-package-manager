@@ -119,6 +119,7 @@ jobs:
           bin_path=$(cat "$RUNNER_TEMP/swiftpm-bin-path")
           root="$RUNNER_TEMP/overlay"
           output="$RUNNER_TEMP/$OVERLAY_NAME.tar.gz"
+          overlay_epoch=$(git -C "$source" show --no-patch --format=%ct "$GITHUB_SHA")
           install -d "$root/usr/bin" "$root/usr/share/pm" "$root/usr/share/nucleus"
           install -m 0755 "$bin_path/swift-package-manager" "$root/usr/bin/swift-package"
           ln -s swift-package "$root/usr/bin/swift-build"
@@ -138,10 +139,11 @@ jobs:
             "swift-package-manager=$GITHUB_SHA" \
             "swift-build=$SWIFT_BUILD_REVISION" \
             "swift-compiler-archive-sha256=$SWIFT_ARCHIVE_SHA256" \
+            "overlay-mtime-epoch=$overlay_epoch" \
             > "$root/usr/share/nucleus/swiftpm-overlay-provenance.txt"
           tar \
             --sort=name \
-            --mtime='UTC 1970-01-01' \
+            --mtime="@$overlay_epoch" \
             --owner=0 \
             --group=0 \
             --numeric-owner \
@@ -150,6 +152,10 @@ jobs:
           archive_digest=$(sha256sum "$output" | cut -d ' ' -f1)
           printf '%s  %s\n' "$archive_digest" "$(basename "$output")" \
             > "$output.sha256"
+          verify_root="$RUNNER_TEMP/overlay-verification"
+          mkdir -p "$verify_root"
+          tar --extract --gzip --file "$output" --directory "$verify_root"
+          test "$(stat --format=%Y "$verify_root/usr/bin/swift-package")" = "$overlay_epoch"
           LD_LIBRARY_PATH="$RUNNER_TEMP/swift/usr/lib/swift/linux" \
             "$root/usr/bin/swift-build" --version
 
