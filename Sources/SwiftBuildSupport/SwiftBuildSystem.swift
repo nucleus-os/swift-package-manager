@@ -1195,8 +1195,8 @@ public final class SwiftBuildSystem: SPMBuildCore.BuildSystem {
             var rawFlags = buildFlags.filter {
                 switch $0.source {
                 case .commandLineOptions:
-                    // Flags specified by the user. These are generally the only ones that should be passed on. Match the native build system behavior of passing them to all compiles.
-                    return true
+                    // Command-line compiler and linker flags describe the destination products. Applying them globally also passes destination sysroot, architecture, and library paths to native host tools such as build plugins and macros during a cross build.
+                    return false
                 case .plugin:
                     // Flags specified by a command plugin. Ideally these would match the behavior of flags passed on the command line, but for compatibility with the native build system we treat these as destination-only flags.
                     return false
@@ -1227,10 +1227,10 @@ public final class SwiftBuildSystem: SPMBuildCore.BuildSystem {
             }.map(\.value)
             var rawDestinationOnlyFlags = buildFlags.filter {
                 switch $0.source {
-                case .plugin:
-                    // See comment in the switch above.
+                case .commandLineOptions, .plugin:
+                    // See the comments in the switch above. Native builds still apply these flags to host tools because host and destination coincide.
                     return true
-                case .commandLineOptions, .debugging, .toolset, .defaultSwiftTestingSearchPath, .defaultWindowsSettings, .swiftSDK, nil:
+                case .debugging, .toolset, .defaultSwiftTestingSearchPath, .defaultWindowsSettings, .swiftSDK, nil:
                     // Already included or excluded appropriately by the switch above.
                     return false
                 }

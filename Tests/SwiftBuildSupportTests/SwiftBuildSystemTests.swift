@@ -511,9 +511,48 @@ struct SwiftBuildSystemTests {
                     shouldDisableSandbox: false,
                 )
 
-                #expect(buildRequest.parameters.overrides.synthesized?.table["OTHER_CFLAGS"]?.contains("-DFoo") == true)
-                #expect(buildRequest.parameters.overrides.synthesized?.table["OTHER_SWIFT_FLAGS"]?.contains("-Xcc -DFoo") == true)
+                #expect(buildRequest.parameters.overrides.synthesized?.table["OTHER_CFLAGS[__destination_platform=YES]"]?.contains("-DFoo") == true)
+                #expect(buildRequest.parameters.overrides.synthesized?.table["OTHER_SWIFT_FLAGS[__destination_platform=YES]"]?.contains("-Xcc -DFoo") == true)
             }
+        }
+    }
+
+    @Test
+    func commandLineFlagsAreDestinationOnly() async throws {
+        let flags = BuildFlags(
+            cCompilerFlags: [BuildFlag(value: "--target=x86_64-unknown-linux-gnu", source: .commandLineOptions)],
+            cxxCompilerFlags: [BuildFlag(value: "--sysroot=/destination", source: .commandLineOptions)],
+            swiftCompilerFlags: [BuildFlag(value: "-DDESTINATION_BUILD", source: .commandLineOptions)],
+            linkerFlags: [BuildFlag(value: "-L/destination/lib", source: .commandLineOptions)]
+        )
+
+        try await withInstantiatedSwiftBuildSystem(
+            fromFixture: "PIFBuilder/Simple",
+            buildParameters: mockBuildParameters(
+                destination: .target,
+                flags: flags,
+                buildSystemKind: .swiftbuild
+            )
+        ) { swiftBuild, service, session, _, _ in
+            let buildSettings = try await swiftBuild.makeBuildParameters(
+                service: service,
+                session: session,
+                symbolGraphOptions: nil,
+                setToolchainSetting: false,
+                shouldDisableSandbox: false
+            )
+            let settings = try #require(buildSettings.overrides.synthesized?.table)
+
+            for setting in ["OTHER_CFLAGS", "OTHER_CPLUSPLUSFLAGS", "OTHER_SWIFT_FLAGS", "OTHER_LDFLAGS_SWIFTC_LINKER_DRIVER_swiftc"] {
+                #expect(!settings[setting, default: ""].contains("/destination"))
+                #expect(!settings[setting, default: ""].contains("DESTINATION_BUILD"))
+                #expect(!settings[setting, default: ""].contains("x86_64-unknown-linux-gnu"))
+            }
+
+            #expect(settings["OTHER_CFLAGS[__destination_platform=YES]", default: ""].contains("--target=x86_64-unknown-linux-gnu"))
+            #expect(settings["OTHER_CPLUSPLUSFLAGS[__destination_platform=YES]", default: ""].contains("--sysroot=/destination"))
+            #expect(settings["OTHER_SWIFT_FLAGS[__destination_platform=YES]", default: ""].contains("-DDESTINATION_BUILD"))
+            #expect(settings["OTHER_LDFLAGS[__destination_platform=YES]", default: ""].contains("-L/destination/lib"))
         }
     }
 
@@ -768,6 +807,7 @@ struct SwiftBuildSystemTests {
 
                 // Check OTHER_CFLAGS
                 let otherCFlags = synthesizedArgs.table["OTHER_CFLAGS"] ?? ""
+                let destinationCFlags = synthesizedArgs.table["OTHER_CFLAGS[__destination_platform=YES]"] ?? ""
                 #expect(
                     !otherCFlags.contains("-g"),
                     "OTHER_CFLAGS should not contain debug flags with source: .debugging"
@@ -777,8 +817,12 @@ struct SwiftBuildSystemTests {
                     "OTHER_CFLAGS should not contain frame pointer flags with source: .debugging"
                 )
                 #expect(
-                    otherCFlags.contains("-DUSER_DEFINE"),
-                    "OTHER_CFLAGS should contain user flags with source: .commandLineOptions"
+                    !otherCFlags.contains("-DUSER_DEFINE"),
+                    "OTHER_CFLAGS should not expose destination command-line flags to host tools"
+                )
+                #expect(
+                    destinationCFlags.contains("-DUSER_DEFINE"),
+                    "destination OTHER_CFLAGS should contain user flags with source: .commandLineOptions"
                 )
 
                 // Check OTHER_CPLUSPLUSFLAGS
@@ -794,6 +838,7 @@ struct SwiftBuildSystemTests {
 
                 // Check OTHER_SWIFT_FLAGS
                 let otherSwiftFlags = synthesizedArgs.table["OTHER_SWIFT_FLAGS"] ?? ""
+                let destinationSwiftFlags = synthesizedArgs.table["OTHER_SWIFT_FLAGS[__destination_platform=YES]"] ?? ""
                 #expect(
                     !otherSwiftFlags.contains("-g"),
                     "OTHER_SWIFT_FLAGS should not contain debug flags with source: .debugging"
@@ -803,8 +848,12 @@ struct SwiftBuildSystemTests {
                     "OTHER_SWIFT_FLAGS should not contain frame pointer flags with source: .debugging"
                 )
                 #expect(
-                    otherSwiftFlags.contains("-DSWIFT_USER"),
-                    "OTHER_SWIFT_FLAGS should contain user flags with source: .commandLineOptions"
+                    !otherSwiftFlags.contains("-DSWIFT_USER"),
+                    "OTHER_SWIFT_FLAGS should not expose destination command-line flags to host tools"
+                )
+                #expect(
+                    destinationSwiftFlags.contains("-DSWIFT_USER"),
+                    "destination OTHER_SWIFT_FLAGS should contain user flags with source: .commandLineOptions"
                 )
 
                 // Verify that dedicated build settings are still set correctly
@@ -841,9 +890,13 @@ struct SwiftBuildSystemTests {
 
             let synthesizedArgs = try #require(buildSettings.overrides.synthesized)
             let otherSwiftFlags = try #require(synthesizedArgs.table["OTHER_SWIFT_FLAGS"])
-            #expect(otherSwiftFlags.contains("-no-toolchain-stdlib-rpath"))
+            #expect(!otherSwiftFlags.contains("-no-toolchain-stdlib-rpath"))
+            let destinationSwiftFlags = try #require(synthesizedArgs.table["OTHER_SWIFT_FLAGS[__destination_platform=YES]"])
+            #expect(destinationSwiftFlags.contains("-no-toolchain-stdlib-rpath"))
             let ldFlagsSwiftc = try #require(synthesizedArgs.table["OTHER_LDFLAGS_SWIFTC_LINKER_DRIVER_swiftc"])
-            #expect(ldFlagsSwiftc.contains("-no-toolchain-stdlib-rpath"))
+            #expect(!ldFlagsSwiftc.contains("-no-toolchain-stdlib-rpath"))
+            let destinationLDFlagsSwiftc = try #require(synthesizedArgs.table["OTHER_LDFLAGS_SWIFTC_LINKER_DRIVER_swiftc[__destination_platform=YES]"])
+            #expect(destinationLDFlagsSwiftc.contains("-no-toolchain-stdlib-rpath"))
             let otherLDFlags = try #require(synthesizedArgs.table["OTHER_LDFLAGS"])
             #expect(otherLDFlags.contains("$(OTHER_LDFLAGS_SWIFTC_LINKER_DRIVER_$(LINKER_DRIVER))"))
         }
