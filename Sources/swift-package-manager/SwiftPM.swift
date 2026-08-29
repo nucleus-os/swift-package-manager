@@ -13,14 +13,14 @@
 import Basics
 import Commands
 import Foundation
-
-import SwiftSDKCommand
 import PackageCollectionsCommand
 import PackageRegistryCommand
+import SwiftSDKCommand
 
 let firstArg = CommandLine.arguments[0]
-let baseNameWithoutExtension = (try? AbsolutePath(validating: firstArg).basenameWithoutExt) ??
-    (try? RelativePath(validating: firstArg).basenameWithoutExt)
+let baseNameWithoutExtension =
+    (try? AbsolutePath(validating: firstArg).basenameWithoutExt)
+    ?? (try? RelativePath(validating: firstArg).basenameWithoutExt)
 
 @main
 struct SwiftPM {
@@ -42,7 +42,9 @@ struct SwiftPM {
         case "swift-build":
             await SwiftBuildCommand.main()
         case "swift-experimental-sdk":
-            fputs("warning: `swift experimental-sdk` command is deprecated and will be removed in a future version of SwiftPM. Use `swift sdk` instead.\n", stderr)
+            fputs(
+                "warning: `swift experimental-sdk` command is deprecated and will be removed in a future version of SwiftPM. Use `swift sdk` instead.\n",
+                stderr)
             fallthrough
         case "swift-sdk":
             await SwiftSDKCommand.main()
@@ -50,12 +52,15 @@ struct SwiftPM {
             await SwiftTestCommand.main()
         case "swift-run":
             await SwiftRunCommand.main()
+        case "swift-nucleus-driver":
+            await NucleusSwiftPMDriver.main()
         case "swift-package-collection":
             await PackageCollectionsCommand.main()
         case "swift-package-registry":
             await PackageRegistryCommand.main()
         default:
-            fatalError("swift-package-manager launched with unexpected name: \(execName ?? "(unknown)")")
+            fatalError(
+                "swift-package-manager launched with unexpected name: \(execName ?? "(unknown)")")
         }
     }
 }
