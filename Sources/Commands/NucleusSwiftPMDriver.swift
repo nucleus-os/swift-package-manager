@@ -256,7 +256,11 @@ private struct NucleusDriverCommand: AsyncSwiftCommand {
             events.emit(.init(kind: .completed, success: true))
         case .test:
             let options = try requiredTestOptions(request)
-            var command = SwiftTestCommand()
+            // Parsed for its declared defaults, for the same reason
+            // `GlobalOptions.init(nucleus:)` is: every option group below is
+            // assigned through, and a directly constructed command still holds
+            // declarations that trap when read.
+            var command = try SwiftTestCommand.parse([])
             command.options.globalOptions = globalOptions
             command.options.sharedOptions.testProduct = options.product
             command.options.filter = options.filters

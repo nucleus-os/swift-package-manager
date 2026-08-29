@@ -6,6 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import ArgumentParser
 import Basics
 import PackageModel
 import SPMBuildCore
@@ -89,8 +90,21 @@ public struct NucleusSwiftPMInvocationOptions: Sendable {
 }
 
 extension GlobalOptions {
+    /// Build the option model the driver runs from, without a command line.
+    ///
+    /// An ArgumentParser property wrapper holds a declaration until parsing
+    /// replaces it with a value, and reading one that still holds a declaration
+    /// is a fatal configuration failure. `GlobalOptions()` leaves every group
+    /// declared, and assigning through a wrapped property reads it first, so
+    /// mutating a directly constructed value traps on the first assignment.
+    ///
+    /// Parsing an empty argument list is what materializes every declared
+    /// default, which is exactly the state `swift build` with no arguments
+    /// starts from. It reconstructs no command line: the request's fields are
+    /// then assigned onto the typed model directly, and nothing about the
+    /// request is ever rendered as an argument.
     public init(nucleus options: NucleusSwiftPMInvocationOptions) throws {
-        self.init()
+        self = try GlobalOptions.parse([])
         locations.packageDirectory = try AbsolutePath(validating: options.packagePath)
         locations._scratchDirectory = try AbsolutePath(validating: options.scratchPath)
         locations.cacheDirectory = try options.cachePath.map(AbsolutePath.init(validating:))
